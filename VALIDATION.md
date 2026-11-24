@@ -10,7 +10,7 @@ Checks performed on the contact-triage, local-import and Google implementation u
 - A delayed file-read check verified that Escape cannot close the import dialog while it is applying an import; the cancel button is disabled until reading completes.
 - A source review checked contact-derived HTML escaping, absence of contact uploads, and lossless handling of extra properties. Two findings (pending-import cancellation and quadratic long-name spelling comparisons) were fixed and rechecked.
 
-The exact generated HTML was served through the browser test harness. File-URL navigation is blocked in that harness; the app itself has no module imports, adjacent-file dependencies or network requests.
+The exact generated HTML was served through the browser test harness. File-URL navigation is blocked in that harness; the app itself has no module imports or adjacent-file dependencies. Local-file mode makes no network requests; Google mode explicitly loads the official authorization library and calls Google APIs after user action.
 
 ## Limits
 
@@ -25,3 +25,5 @@ Google configuration was created with the official Cloud UI: People API enabled,
 No real Google contacts were read or modified during automated tests. Live Google consent and real-provider mutation behavior still need user testing; OAuth Testing status limits connection to registered test accounts. iCloud direct connection remains unimplemented.
 
 Publication uses an explicit source-file allowlist, with no local contact files, personal screenshots, credentials, logs or environment files. The bundled font license notices are retained.
+
+The deployed HTTPS app returned HTTP 200 with Tri and Connect Google present. The official Google authorization library loaded successfully under the live content security policy, without starting OAuth consent or reading personal contacts.
