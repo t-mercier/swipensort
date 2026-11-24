@@ -1,0 +1,23 @@
+# Personal contact files must never enter this public repository.
+*.vcf
+*.vcard
+*.csv
+*.tsv
+*.ics
+*.zip
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+node_modules/
+contacts/
+private/
+imports/
+exports/
+backups/
+work/
+outputs/
+playwright-report/
+test-results/
+.playwright-mcp/
