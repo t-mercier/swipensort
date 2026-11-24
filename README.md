@@ -13,7 +13,7 @@ Open [Swipe n Sort](https://t-mercier.github.io/swipensort/) for Google connecti
 5. Review the final card and merge explicitly. Incompatible names or different birth dates require additional confirmation; coordinate differences are shown without an extra checkbox.
 6. Export the current address book or the original cards as a `.vcf` copy. Keep your initial export as a backup before importing the result into a contacts service.
 
-In **Tri**, drag the contact card left to discard it or right to keep it. Short fast flicks and longer diagonal gestures are supported; slow short gestures snap back without a decision, and vertical scrolling remains available. Buttons and arrow keys provide the same actions. In **Doublons**, the separate comparison handle keeps cards separate on the left and opens the merge preview on the right. You can also discard one or both duplicate cards without merging them. Swiping never merges cards automatically. Original files remain intact; vCard export contains the remaining cards.
+On mobile, **Tri** fills the screen with a three-card stack, bottom actions and navigation. Details and import/export options open separately. In **Tri**, drag the contact card left to discard it or right to keep it. Short fast flicks and longer diagonal gestures are supported; slow short gestures snap back without a decision, and mobile Tri stays fixed to the viewport. Buttons and arrow keys provide the same actions. In **Doublons**, the separate comparison handle keeps cards separate on the left and opens the merge preview on the right. You can also discard one or both duplicate cards without merging them. Swiping never merges cards automatically. Original files remain intact; vCard export contains the remaining cards.
 
 ## Privacy
 

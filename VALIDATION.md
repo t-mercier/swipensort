@@ -28,8 +28,8 @@ Publication uses an explicit source-file allowlist, with no local contact files,
 
 The deployed HTTPS app returned HTTP 200 with Tri and Connect Google present. The official Google authorization library loaded successfully under the live content security policy, without starting OAuth consent or reading personal contacts.
 
-## Mobile gesture regression
+## Full-screen mobile swipe (V4.3.0)
 
-A native Chromium touch sequence reproduced a 200-pixel left swipe with 96 pixels of vertical drift that moved the card but left the original count unchanged. The gesture now locks its axis after an initial movement, uses a card-relative threshold or short fast flick, and animates exit/snapback. Pointer-capture loss from a child element does not cancel the parent card gesture.
+Mobile Tri fills the dynamic viewport, including safe-area padding, with a three-card stack and persistent actions/navigation. Single-finger dragging follows both axes without scrolling the document. Decisions commit at release, so navigating during the exit animation preserves the choice and its undo entry. Small gestures return without mutation; pinch zoom remains enabled.
 
-9 native-touch checks pass: diagonal tracking and deletion, undo, right-swipe keep, slow-short snapback, fast flick, vertical scrolling without mutation, interrupted gesture without mutation, and reduced-motion behavior. The mouse/Google workflow was rerun after this change. Physical Safari/iOS and Android device testing still depends on user feedback.
+Native Chromium touch checks cover diagonals, deletion, keeping, undo, slow-short snapback, fast flicks, vertical movement without a decision or page scrolling, interruption and reduced motion. Layout checks cover 390×844, 320×568 and 844×390. Additional checks cover details, mobile import options and navigation during an exit animation. Synthetic import and Google workflows remain covered. Physical iOS Safari and Android gesture feel still need user testing.
