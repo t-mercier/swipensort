@@ -27,3 +27,9 @@ No real Google contacts were read or modified during automated tests. Live Googl
 Publication uses an explicit source-file allowlist, with no local contact files, personal screenshots, credentials, logs or environment files. The bundled font license notices are retained.
 
 The deployed HTTPS app returned HTTP 200 with Tri and Connect Google present. The official Google authorization library loaded successfully under the live content security policy, without starting OAuth consent or reading personal contacts.
+
+## Mobile gesture regression
+
+A native Chromium touch sequence reproduced a 200-pixel left swipe with 96 pixels of vertical drift that moved the card but left the original count unchanged. The gesture now locks its axis after an initial movement, uses a card-relative threshold or short fast flick, and animates exit/snapback. Pointer-capture loss from a child element does not cancel the parent card gesture.
+
+9 native-touch checks pass: diagonal tracking and deletion, undo, right-swipe keep, slow-short snapback, fast flick, vertical scrolling without mutation, interrupted gesture without mutation, and reduced-motion behavior. The mouse/Google workflow was rerun after this change. Physical Safari/iOS and Android device testing still depends on user feedback.

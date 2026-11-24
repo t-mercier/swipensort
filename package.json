@@ -1,6 +1,6 @@
 {
   "name": "swipensort",
-  "version": "4.2.0",
+  "version": "4.2.1",
   "private": true,
   "description": "Local-first contact deduplication with explainable matching and reversible merges",
   "scripts": {

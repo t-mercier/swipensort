@@ -1,6 +1,6 @@
 'use strict';
 const $=s=>document.querySelector(s),esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let original=Smart.demo(),demoMode=true,googleMode=false,syncBlocked=false;let contacts=[...original],dismissed=new Set(),history=[],selected='',view='tri',filter='all',selection={},search='',lastFocus;
+let original=Smart.demo(),demoMode=true,googleMode=false,syncBlocked=false,triBusy=false;let contacts=[...original],dismissed=new Set(),history=[],selected='',view='tri',filter='all',selection={},search='',lastFocus;
 let reviewed=new Set(),deletedGoogleIds=new Set();
 const labels={strong:'Forte correspondance',probable:'Correspondance probable',review:'À vérifier'};
 const fields=[['keeper','Fiche conservée dans Google','radio'],['name','Nom','radio'],['emails','Emails','checkbox'],['phones','Téléphones','checkbox'],['company','Organisation','radio'],['birthday','Naissance','radio'],['country','Pays','radio'],['notes','Notes','checkbox'],['extras','Autres champs','checkbox']];
@@ -20,7 +20,7 @@ function say(message){$('#toast').textContent=message;clearTimeout(say.timer);sa
 function checkpoint(){history.push({contacts,dismissed:[...dismissed],selected,filter,view,reviewed:[...reviewed],deletedGoogleIds:[...deletedGoogleIds]});}
 function avatar(c){return esc(c.name.split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase());}
 function personHTML(c){return `<article class="person"><span class="source">${esc(c.source)}</span><div class="avatar" aria-hidden="true">${avatar(c)}</div><h3>${esc(c.name)}</h3>${[...(c.emails||[]),...(c.phones||[]),c.company,c.birthday,c.notes].filter(Boolean).map(v=>`<p>${esc(v)}</p>`).join('')}<p>${esc(c.country)}</p></article>`;}
-function render(){
+function render(){triBusy=false;
  $('#total').textContent=contacts.length+' fiches';updateBanner();$('#undo').disabled=!history.length||syncBlocked;$('#triTab').classList.toggle('active',view==='tri');$('#triTab').setAttribute('aria-pressed',String(view==='tri'));
  $('#matchesTab').classList.toggle('active',view==='matches');$('#allTab').classList.toggle('active',view==='all');
  $('#matchesTab').setAttribute('aria-pressed',String(view==='matches'));$('#allTab').setAttribute('aria-pressed',String(view==='all'));
@@ -49,7 +49,7 @@ $('#modal').addEventListener('close',()=>lastFocus?.isConnected&&lastFocus.focus
 function showOriginals(){modal(`<span class="eyebrow">Avant ton tri</span><h2 id="modalTitle">Les originaux sont ici.</h2><p>Ces ${original.length} fiches ${demoMode?'fictives ':''}restent intactes pendant cette session.</p><div class="cols">${original.slice(0,50).map(personHTML).join('')}</div>${original.length>50?'<p>Les 50 premières fiches sont affichées ici. L’export des originaux contient le carnet complet.</p>':''}<button id="close" style="margin-top:20px">Fermer</button>`);$('#close').onclick=closeModal;}
 function download(text,name,type){const url=URL.createObjectURL(new Blob([text],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),30000);}
 $('#export').onclick=()=>{if(googleMode){googleBackup();return;}const pending=allPairs().filter(p=>!dismissed.has(key(p))).length;modal(`<span class="eyebrow">Exporter une copie</span><h2 id="modalTitle">Un carnet à emporter.</h2><p>Choisis ce que tu veux télécharger au format vCard (.vcf).</p><label class="choice"><input type="radio" name="scope" value="current" checked><span><strong>Carnet actuel · ${contacts.length} fiches</strong><br>Inclut tes fusions validées et toutes les fiches restantes.</span></label><label class="choice" style="margin-top:10px"><input type="radio" name="scope" value="original"><span><strong>Originaux · ${original.length} fiches</strong><br>Copie intacte avant toute décision.</span></label><p class="warn">${demoMode?'Données de démonstration uniquement. Ce fichier ajoutera de faux contacts si tu l’importes dans un carnet réel.':'Ce fichier contient tes contacts. Garde une copie de ton export initial avant de réimporter le résultat.'} ${pending?pending+' paire(s) restent à examiner dans le carnet actuel.':''}</p><p class="notice">L’export télécharge une copie. Il ne modifie aucun carnet connecté.</p><div class="action-buttons"><button id="cancelExport">Fermer</button><button id="download" class="primary">Télécharger le .vcf</button></div>`);$('#cancelExport').onclick=closeModal;$('#download').onclick=()=>{const raw=$('input[name="scope"]:checked').value==='original';const data=structuredClone(raw?original:contacts);try{if(demoMode)for(const c of data)c.notes='DÉMONSTRATION — contact fictif.\n'+(c.notes||'');download(demoMode?Smart.vcard(data):VCards.export(data),demoMode?(raw?'swipe-n-sort-DEMO-originaux.vcf':'swipe-n-sort-DEMO-carnet.vcf'):(raw?'swipe-n-sort-originaux.vcf':'swipe-n-sort-carnet.vcf'),'text/vcard;charset=utf-8');closeModal();say('Copie vCard téléchargée.');}catch(e){say(e.message);}};};
-$('#undo').onclick=()=>{const prior=history.pop();if(!prior)return;contacts=prior.contacts;dismissed=new Set(prior.dismissed);selected=prior.selected;filter=prior.filter;view=prior.view;reviewed=new Set(prior.reviewed);deletedGoogleIds=new Set(prior.deletedGoogleIds);const p=current();if(p)defaults(p);render();say('Dernière décision annulée.');};
+$('#undo').onclick=()=>{if(triBusy)return;const prior=history.pop();if(!prior)return;contacts=prior.contacts;dismissed=new Set(prior.dismissed);selected=prior.selected;filter=prior.filter;view=prior.view;reviewed=new Set(prior.reviewed);deletedGoogleIds=new Set(prior.deletedGoogleIds);const p=current();if(p)defaults(p);render();say('Dernière décision annulée.');};
 $('#reset').onclick=()=>{modal('<h2 id="modalTitle">Repartir de zéro ?</h2><p>Les fusions et décisions seront réinitialisées. Le carnet importé reste chargé.</p><div class="action-buttons"><button id="cancelReset">Continuer mon tri</button><button id="doReset" class="primary">Recommencer le tri</button></div>');$('#cancelReset').onclick=closeModal;$('#doReset').onclick=()=>{contacts=[...original];history=[];dismissed=new Set();reviewed=new Set();deletedGoogleIds=new Set();selected='';filter='all';view='tri';search='';closeModal();render();say('Le carnet est prêt pour un nouveau tri.');};};
 $('#matchesTab').onclick=()=>{view='matches';render();};$('#allTab').onclick=()=>{view='all';render();};
 for(const btn of document.querySelectorAll('.module:not([aria-current])'))btn.onclick=()=>{modal(`<span class="mini-sticker" aria-hidden="true">${btn.querySelector('.charm').textContent}</span><h2 id="modalTitle">${esc(btn.querySelector('b').textContent)}, bientôt.</h2><p>Ce module est un aperçu de la suite. Seul Contacts est actif dans cette V4.</p><button id="backContacts" class="primary">Retour aux contacts</button>`);$('#backContacts').onclick=closeModal;};
@@ -114,7 +114,7 @@ function googleBackup(){
  say('Sauvegarde Google téléchargée sur ton appareil.');
 }
 $('#applyGoogle').onclick=()=>{
- if(!googleMode||syncBlocked)return;let plan;
+ if(!googleMode||syncBlocked||triBusy)return;let plan;
  try{plan=GoogleContacts.plan(original,contacts,{deletedIds:[...deletedGoogleIds]});}catch(e){say(e.message);return;}
  if(!plan.updatedCount&&!plan.deletedCount){say('Aucune fusion ni suppression à envoyer dans Google.');return;}
  modal(`<h2 id="modalTitle">Appliquer dans Google ?</h2><p><strong>${plan.updatedCount} fiche(s) seront mises à jour et ${plan.deletedCount} fiche(s) seront supprimés dans ton compte Google.</strong></p><ul class="sync-list">${plan.operations.map(op=>'<li>Fusionner dans '+esc(person(op.keeper)?.name||'une fiche')+' · '+op.remove.length+' doublon(s) retiré(s)</li>').join('')}${(plan.deletions||[]).map(entry=>'<li>Supprimer : '+esc(original.find(c=>c.id===entry.id)?.name||'une fiche sélectionnée')+'</li>').join('')}</ul><p>Les fiches conservées recevront les champs de tes aperçus. Les versions seront vérifiées avant l’envoi. Une fois les changements envoyés, le bouton Annuler ne pourra plus les rétablir.</p><p class="warn">Évite de modifier ce carnet dans une autre app pendant l’envoi. Si une opération échoue, l’app s’arrête et demande de recharger le carnet.</p><p id="syncError" class="warn" role="alert" hidden></p><button id="backupGoogle">Télécharger une sauvegarde complète</button><div class="action-buttons" style="margin-top:18px"><button id="cancelSync">Continuer mon tri</button><button id="confirmSync" class="primary">Appliquer ces changements dans Google</button></div>`);
@@ -133,23 +133,39 @@ $('#applyGoogle').onclick=()=>{
 };
 
 function dropContacts(ids){
- if(syncBlocked){say('Recharge Google avant de reprendre le tri.');return;}
+ if(triBusy)return;if(syncBlocked){say('Recharge Google avant de reprendre le tri.');return;}
  checkpoint();for(const id of ids){const c=person(id);if(c&&googleMode)for(const sourceId of Object.keys(c._google.sources))deletedGoogleIds.add(sourceId);reviewed.delete(id);}
  contacts=contacts.filter(c=>!ids.includes(c.id));selected='';render();say(ids.length>1?'Fiches écartées. Tu peux annuler.':'Fiche écartée. Tu peux annuler.');
 }
-function keepCurrent(id){if(syncBlocked)return;checkpoint();reviewed.add(id);render();say('Contact gardé.');}
+function keepCurrent(id){if(syncBlocked||triBusy)return;checkpoint();reviewed.add(id);render();say('Contact gardé.');}
 function renderTri(){
  const remaining=contacts.filter(c=>!reviewed.has(c.id)),c=remaining[0];
- $('#sidebar').innerHTML=`<p class="sub"><strong>${remaining.length}</strong> contact(s) à revoir<br>${reviewed.size} gardé(s) · ${original.length-contacts.length} fiche(s) en moins</p><p class="side-note">Une fiche à la fois.<br>Glisse à gauche pour supprimer,<br>à droite pour garder.<br><br>Les décisions restent annulables ${googleMode?'avant l’envoi dans Google.':'pendant cette session.'}</p><button id="triDuplicates">Examiner les doublons</button>`;
+ $('#sidebar').innerHTML=`<p class="sub"><strong>${remaining.length}</strong> contact(s) à revoir<br>${contacts.filter(c=>reviewed.has(c.id)).length} gardé(s) · ${original.length-contacts.length} fiche(s) en moins</p><p class="side-note">Une fiche à la fois.<br>Glisse à gauche pour supprimer,<br>à droite pour garder.<br><br>Les décisions restent annulables ${googleMode?'avant l’envoi dans Google.':'pendant cette session.'}</p><button id="triDuplicates">Examiner les doublons</button>`;
  $('#triDuplicates').onclick=()=>{view='matches';render();};
  if(!c){$('#content').innerHTML='<div class="sheet empty"><div class="emoji">🪩</div><h3>Ton tri est terminé.</h3><p>Tu peux examiner les doublons, revoir ton carnet ou annuler une décision.</p><button id="triDone">Voir le carnet</button></div>';$('#triDone').onclick=()=>{view='all';render();};return;}
  $('#content').innerHTML=`<div class="tri-guide"><span>← Supprimer</span><span>Garder →</span></div><article class="sheet tri-card" id="triCard" tabindex="0" aria-label="Contact à trier : ${esc(c.name)}. Flèche gauche pour supprimer, droite pour garder."><div class="tri-sticker">💌</div><span class="source">${esc(c.source)}</span><h2>${esc(c.name)}</h2>${[...c.emails,...c.phones,c.company,c.birthday,c.notes].filter(Boolean).map(v=>'<p>'+esc(v)+'</p>').join('')}${(c.extras||[]).length?'<details><summary>Autres informations ('+c.extras.length+')</summary>'+(c.extras||[]).map(v=>'<p>'+esc(describeExtra(v))+'</p>').join('')+'</details>':''}<p class="notice">Glisse la fiche ou utilise les boutons.</p></article><div class="tri-actions"><button id="deleteTri" class="delete-btn">✕ Supprimer</button><button id="keepTri" class="keep-btn">♡ Garder</button></div><p class="notice tri-explanation">« Supprimer » retire la fiche du carnet préparé. ${googleMode?'Ton compte Google reste inchangé jusqu’à ta validation de l’envoi.':'Ton fichier original reste intact ; seules les fiches restantes seront exportées.'}</p>`;
  $('#deleteTri').onclick=()=>dropContacts([c.id]);$('#keepTri').onclick=()=>keepCurrent(c.id);
- const card=$('#triCard');let origin=null,dx=0,dy=0;
- const reset=()=>{origin=null;dx=0;dy=0;card.style.transform='';card.removeAttribute('data-direction');};
- card.onpointerdown=e=>{if(e.button!==0||e.target.closest('button,summary,details'))return;origin={x:e.clientX,y:e.clientY};card.setPointerCapture(e.pointerId);};
- card.onpointermove=e=>{if(!origin)return;dx=e.clientX-origin.x;dy=e.clientY-origin.y;if(Math.abs(dx)>Math.abs(dy)){card.style.transform=`translateX(${Math.max(-130,Math.min(130,dx))}px) rotate(${Math.max(-8,Math.min(8,dx/18))}deg)`;if(Math.abs(dx)>35)card.dataset.direction=dx<0?'delete':'keep';}};
- card.onpointerup=()=>{const x=dx,y=dy;reset();if(Math.abs(y)<80){if(x<=-90)dropContacts([c.id]);else if(x>=90)keepCurrent(c.id);}};card.onpointercancel=reset;card.onlostpointercapture=reset;
+ const card=$('#triCard');let gesture=null;
+ const reduced=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const reset=()=>{gesture=null;card.style.transition=reduced()?'none':'transform 240ms cubic-bezier(.2,.8,.2,1)';card.style.transform='';card.style.willChange='';card.removeAttribute('data-direction');card.style.removeProperty('--swipe-strength');};
+ card.onpointerdown=e=>{if(triBusy||!e.isPrimary||e.button!==0||e.target.closest('button,summary,details'))return;gesture={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,axis:'',moves:[{x:e.clientX,t:e.timeStamp}]};card.style.transition='none';};
+ card.onpointermove=e=>{
+  const g=gesture;if(!g||e.pointerId!==g.id)return;g.dx=e.clientX-g.x;g.dy=e.clientY-g.y;
+  if(!g.axis&&Math.max(Math.abs(g.dx),Math.abs(g.dy))>10){if(Math.abs(g.dx)>Math.abs(g.dy)*1.15){g.axis='x';card.setPointerCapture(e.pointerId);}else if(Math.abs(g.dy)>Math.abs(g.dx)*1.15)g.axis='y';}
+  if(g.axis!=='x')return;
+  const x=Math.max(-innerWidth,Math.min(innerWidth,g.dx));card.style.willChange='transform';card.style.transform=`translate3d(${x}px,${g.dy*.12}px,0) rotate(${Math.max(-12,Math.min(12,x/20))}deg)`;
+  if(Math.abs(x)>20)card.dataset.direction=x<0?'delete':'keep';else card.removeAttribute('data-direction');card.style.setProperty('--swipe-strength',String(Math.min(1,Math.abs(x)/90)));
+  g.moves.push({x:e.clientX,t:e.timeStamp});g.moves=g.moves.filter(m=>m.t>=e.timeStamp-100);
+ };
+ card.onpointerup=e=>{
+  const g=gesture;if(!g||e.pointerId!==g.id)return;gesture=null;
+  const recent=g.moves.find(m=>m.t>=e.timeStamp-90)||{x:e.clientX,t:e.timeStamp};const velocity=(e.clientX-recent.x)/Math.max(1,e.timeStamp-recent.t),threshold=Math.min(110,card.clientWidth*.28);
+  const accepted=g.axis==='x'&&(Math.abs(g.dx)>=threshold||(Math.abs(g.dx)>=40&&Math.abs(velocity)>=.6));
+  if(!accepted){reset();return;}
+  triBusy=true;const direction=g.dx<0?-1:1;card.dataset.direction=direction<0?'delete':'keep';card.style.setProperty('--swipe-strength','1');card.style.transition=reduced()?'none':'transform 180ms ease-in, opacity 180ms ease-in';card.style.transform=`translate3d(${direction*(innerWidth+card.clientWidth)}px,${g.dy*.12}px,0) rotate(${direction*18}deg)`;card.style.opacity='0';$('#deleteTri').disabled=true;$('#keepTri').disabled=true;
+  const finish=()=>{triBusy=false;if(!card.isConnected)return;if(direction<0)dropContacts([c.id]);else keepCurrent(c.id);};if(reduced())finish();else setTimeout(finish,190);
+ };
+ card.onpointercancel=reset;card.onlostpointercapture=e=>{if(gesture&&e.target===card&&!card.hasPointerCapture(e.pointerId))reset();};
  card.onkeydown=e=>{if(e.key==='ArrowLeft'){e.preventDefault();e.stopPropagation();dropContacts([c.id]);}else if(e.key==='ArrowRight'){e.preventDefault();e.stopPropagation();keepCurrent(c.id);}};
 }
 $('#triTab').onclick=()=>{view='tri';render();};
