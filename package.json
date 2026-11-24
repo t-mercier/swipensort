@@ -1,12 +1,14 @@
 {
   "name": "swipensort",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "private": true,
   "description": "Local-first contact deduplication with explainable matching and reversible merges",
   "scripts": {
     "build": "node scripts/build.cjs",
-    "test": "node tests/engine.test.cjs && node tests/vcard.test.cjs",
+    "test": "node tests/engine.test.cjs && node tests/vcard.test.cjs && node tests/google.test.cjs && node tests/google-auth.test.cjs",
     "audit:public": "node scripts/audit-public.cjs"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=18"
+  }
 }

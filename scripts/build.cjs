@@ -1,6 +1,6 @@
 const fs=require('node:fs'),path=require('node:path');
 const root=path.resolve(__dirname,'..');let html=fs.readFileSync(path.join(root,'src/index.template.html'),'utf8');
-for(const [marker,file] of [['ENGINE','engine.js'],['VCARD','vcard.js'],['APP','app.js']]){
+for(const [marker,file] of [['CONFIG','config.js'],['AUTH','google-auth.js'],['GOOGLE','google.js'],['ENGINE','engine.js'],['VCARD','vcard.js'],['APP','app.js']]){
  const token='/* '+marker+' */';if(!html.includes(token))throw Error('Missing build marker: '+marker);
  html=html.replace(token,()=>fs.readFileSync(path.join(root,'src',file),'utf8'));
 }

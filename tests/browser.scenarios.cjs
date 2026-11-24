@@ -1,10 +1,10 @@
 module.exports = async(page)=>{
- const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.SWIPE_TEST_URL || 'http://127.0.0.1:8080/');
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.SWIPE_TEST_URL || 'http://127.0.0.1:8080/');await page.locator('#matchesTab').click();
  const passed=[],check=(name,value)=>{if(!value)throw new Error(name);passed.push(name);};
  const a=['BEGIN:VCARD','VERSION:3.0','UID:synthetic-a','FN:Léa Exemple','N:Exemple;Léa;;;','item1.EMAIL;TYPE=HOME:lea@example.com','item1.X-ABLabel:Perso','TEL;TYPE=CELL:06 00 00 00 01','ADR;TYPE=HOME:;;1 rue Fictive;Ville;;00000;France','PHOTO;ENCODING=b;TYPE=PNG:YWJj','URL:https://example.com/profile','NOTE:Note A','END:VCARD'].join('\r\n');
  const b=['BEGIN:VCARD','VERSION:3.0','UID:synthetic-b','FN:Lea Exemple','N:Exemple;Lea;;;','EMAIL;TYPE=WORK:lea@example.com','TEL;TYPE=CELL:+33 6 00 00 00 01','X-SYNTHETIC:Conservé','NOTE:Note B','END:VCARD'].join('\r\n');
  const third=['BEGIN:VCARD','VERSION:3.0','FN:Un autre exemple','X-PRIVATE-TEST:Valeur fictive','END:VCARD'].join('\r\n');
- await page.locator('#importContacts').click();await page.locator('#importCountry').selectOption('FR');await page.locator('#importFiles').setInputFiles({name:'synthetic.vcf',mimeType:'text/vcard',buffer:Buffer.from(a+'\r\n'+b+'\r\n'+third)});await page.locator('#confirmImport').click();await page.locator('#modal').waitFor({state:'hidden'});
+ await page.locator('#importContacts').click();await page.locator('#importCountry').selectOption('FR');await page.locator('#importFiles').setInputFiles({name:'synthetic.vcf',mimeType:'text/vcard',buffer:Buffer.from(a+'\r\n'+b+'\r\n'+third)});await page.locator('#confirmImport').click();await page.locator('#modal').waitFor({state:'hidden'});await page.locator('#matchesTab').click();
  check('Import atomique : 3 fiches, 1 paire',await page.locator('#total').innerText()==='3 fiches'&&await page.locator('.pair').count()===1);
  check('Session réelle distincte de la démo',(await page.locator('#sessionInfo').innerText()).includes('Ton carnet'));
  check('Numéro international seul présélectionné',await page.locator('input[name="phones"]:checked').count()===1&&(await page.locator('#preview').innerText()).includes('+33'));
